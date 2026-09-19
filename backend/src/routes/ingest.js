@@ -5,7 +5,7 @@ import { ENUMS, validateClassified, validateQuestion, validateMeeting, validateR
 
 const MAX_BATCH = 50;
 
-/** Generic idempotent batch writer: validate each item, skip existing ids, report per-item rejects. */
+/** Validate each item and give repeated ids a unique suffix before storing. */
 function batchHandler({ store, now }, { collection, idField, validate, decorate }) {
   return (req, res) => {
     const items = req.body?.items;
@@ -14,22 +14,21 @@ function batchHandler({ store, now }, { collection, idField, validate, decorate 
     if (items.length > MAX_BATCH) throw validationError(`Max ${MAX_BATCH} items per batch`, [{ index: -1, field: 'items', issue: `got ${items.length}, max ${MAX_BATCH}` }]);
 
     let accepted = 0;
-    let duplicates = 0;
     const rejected = [];
-    const seen = new Set();
     items.forEach((item, index) => {
       const check = validate(item);
       if (!check.ok) return rejected.push({ index, error: check.message() });
-      const id = item[idField];
-      if (seen.has(id) || store.has(collection, id)) { duplicates++; return; }
-      seen.add(id);
+      let id = item[idField];
+      let suffix = 2;
+      while (store.has(collection, id)) id = `${item[idField]}_${suffix++}`;
+      const receivedItem = { ...item, [idField]: id };
       const receivedAt = now().toISOString();
-      store.set(collection, id, decorate(item, receivedAt));
-      console.info(JSON.stringify({ event: 'data_ingested', collection, id, received_at: receivedAt, data: item }));
+      store.set(collection, id, decorate(receivedItem, receivedAt));
+      console.info(JSON.stringify({ event: 'data_received', collection, id, received_at: receivedAt, data: receivedItem }));
       accepted++;
     });
-    console.info(JSON.stringify({ event: 'ingest_batch', collection, received: items.length, accepted, duplicates, rejected: rejected.length }));
-    res.json({ accepted, duplicates, rejected });
+    console.info(JSON.stringify({ event: 'ingest_batch', collection, received: items.length, accepted, rejected: rejected.length }));
+    res.json({ accepted, duplicates: 0, rejected });
   };
 }
 

@@ -7,13 +7,15 @@ beforeEach(async () => { s = await startServer(); });
 afterEach(() => s.close());
 const post = (items, path = 'classified') => s.post(`/v1/ingest/${path}`, { items }, s.fastn);
 
-test('accepts a valid item then reports it as duplicate (idempotent)', async () => {
+test('accepts a repeated item under a new id', async () => {
   assert.deepEqual((await post([classified()])).body, { accepted: 1, duplicates: 0, rejected: [] });
-  assert.deepEqual((await post([classified()])).body, { accepted: 0, duplicates: 1, rejected: [] });
+  assert.deepEqual((await post([classified()])).body, { accepted: 1, duplicates: 0, rejected: [] });
+  const dashboard = await s.get('/v1/dashboard');
+  assert.equal(dashboard.body.totals.feedback, 2);
 });
 
-test('duplicate ids inside one batch count once', async () => {
-  assert.deepEqual((await post([classified(), classified()])).body, { accepted: 1, duplicates: 1, rejected: [] });
+test('repeated ids inside one batch are both accepted', async () => {
+  assert.deepEqual((await post([classified(), classified()])).body, { accepted: 2, duplicates: 0, rejected: [] });
 });
 
 test('mixed batch: accepted + rejected with index', async () => {
@@ -73,7 +75,7 @@ test('classified accepts praise-only, null game_version, and 8-word cluster keys
 const question = () => ({ question_id: 'world_designer_3f2a9c1d7e4b', portfolio: 'world_designer', question: 'How would you design a recovery flow?', why_it_matters: 'Top risk (54 mentions).', type: 'scenario', difficulty: 'mid', expected_signals: ['backups', 'player trust'], source_cluster_keys: ['world-save-corruption'], generated_at: hoursAgo(1) });
 test('interview questions: ok, duplicate, and id/portfolio mismatch', async () => {
   assert.equal((await post([question()], 'interview-questions')).body.accepted, 1);
-  assert.equal((await post([question()], 'interview-questions')).body.duplicates, 1);
+  assert.equal((await post([question()], 'interview-questions')).body.accepted, 1);
   const bad = await post([{ ...question(), question_id: 'qa_tester_3f2a9c1d7e4b' }], 'interview-questions');
   assert.equal(bad.body.rejected.length, 1);
 });
@@ -81,15 +83,17 @@ test('interview questions: ok, duplicate, and id/portfolio mismatch', async () =
 const meeting = () => ({ meeting_id: 'world_engine_world-save-corruption_20260919', team: 'world_engine', title: 'Triage', trigger_reason: 'critical', cluster_keys: ['world-save-corruption'], agenda: [{ item: 'Review', context: '54 reports', duration_min: 10 }], discussion_points: ['Hotfix?'], scheduled_start: '2026-09-21T10:00:00Z', scheduled_end: '2026-09-21T10:30:00Z', attendee_emails: ['lead@studio.com'], calendar_event_id: 'abc', calendar_link: 'https://calendar.google.com/x', slack_message_url: 'https://slack.com/x', status: 'scheduled' });
 test('meetings: ok, duplicate, end-before-start and bad email rejected', async () => {
   assert.equal((await post([meeting()], 'meetings')).body.accepted, 1);
-  assert.equal((await post([meeting()], 'meetings')).body.duplicates, 1);
+  assert.equal((await post([meeting()], 'meetings')).body.accepted, 1);
   const bad = await post([{ ...meeting(), meeting_id: 'world_engine_x_1', scheduled_end: '2026-09-21T09:00:00Z' }, { ...meeting(), meeting_id: 'world_engine_x_2', attendee_emails: ['nope'] }], 'meetings');
   assert.equal(bad.body.rejected.length, 2);
 });
 
 const report = () => ({ report_id: 'weekly_2026-09-19', period: 'weekly', period_start: '2026-09-13T00:00:00Z', period_end: '2026-09-19T23:59:59Z', headline: 'World corruption is #1', highlights: ['Bugs +40%'], risks: ['Retention risk'], recommendations: [{ action: 'Ship hotfix', team: 'world_engine', impact: 'high' }], generated_at: hoursAgo(0) });
-test('reports: ok, duplicate, period/id mismatch and bad impact rejected', async () => {
+test('reports: repeated id gets a suffix; period/id mismatch and bad impact rejected', async () => {
   assert.equal((await post([report()], 'reports')).body.accepted, 1);
-  assert.equal((await post([report()], 'reports')).body.duplicates, 1);
+  assert.equal((await post([report()], 'reports')).body.accepted, 1);
+  const dashboard = await s.get('/v1/dashboard');
+  assert.deepEqual(dashboard.body.reports.map((item) => item.report_id).sort(), ['weekly_2026-09-19', 'weekly_2026-09-19_2']);
   const bad = await post([{ ...report(), report_id: 'daily_2026-09-19' }, { ...report(), report_id: 'weekly_2026-09-20', recommendations: [{ action: 'x', team: 'qa', impact: 'huge' }] }], 'reports');
   assert.equal(bad.body.rejected.length, 2);
 });
