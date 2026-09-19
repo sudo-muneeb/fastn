@@ -23,7 +23,9 @@ function batchHandler({ store, now }, { collection, idField, validate, decorate 
       const id = item[idField];
       if (seen.has(id) || store.has(collection, id)) { duplicates++; return; }
       seen.add(id);
-      store.set(collection, id, decorate(item, now().toISOString()));
+      const receivedAt = now().toISOString();
+      store.set(collection, id, decorate(item, receivedAt));
+      console.info(JSON.stringify({ event: 'data_ingested', collection, id, received_at: receivedAt, data: item }));
       accepted++;
     });
     res.json({ accepted, duplicates, rejected });
