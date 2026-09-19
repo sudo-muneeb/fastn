@@ -28,6 +28,7 @@ function batchHandler({ store, now }, { collection, idField, validate, decorate 
       console.info(JSON.stringify({ event: 'data_ingested', collection, id, received_at: receivedAt, data: item }));
       accepted++;
     });
+    console.info(JSON.stringify({ event: 'ingest_batch', collection, received: items.length, accepted, duplicates, rejected: rejected.length }));
     res.json({ accepted, duplicates, rejected });
   };
 }
@@ -50,6 +51,7 @@ export function ingestRoutes(ctx) {
     const status = req.body?.status;
     if (!ENUMS.status.includes(status)) throw validationError('Invalid status', [{ index: 0, field: 'status', issue: `must be one of ${ENUMS.status.join('|')}` }]);
     ctx.store.set('cluster_status', `${kind}:${key}`, status);
+    console.info(JSON.stringify({ event: 'cluster_status_updated', kind, key, status }));
     res.json({ cluster_key: key, status });
   });
   return r;

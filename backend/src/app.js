@@ -13,6 +13,22 @@ export function createApp({ config, store = new Store(config.dataFile, config.se
   const ctx = { config, store, now };
   const app = express();
   app.disable('x-powered-by');
+  app.use((req, res, next) => {
+    const started = process.hrtime.bigint();
+    const path = req.originalUrl.split('?')[0];
+    const receivedAt = now().toISOString();
+    res.on('finish', () => {
+      console.info(JSON.stringify({
+        event: 'http_request',
+        received_at: receivedAt,
+        method: req.method,
+        path,
+        status: res.statusCode,
+        duration_ms: Number(process.hrtime.bigint() - started) / 1e6,
+      }));
+    });
+    next();
+  });
   app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(',') }));
   app.use(express.json({ limit: '1mb' }));
 
