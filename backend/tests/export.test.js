@@ -116,3 +116,11 @@ test('dashboard validates days/portfolio and filters questions', async () => {
   const r = await s.get('/v1/dashboard?portfolio=qa_tester');
   assert.deepEqual(r.body.interview_questions.map((x) => x.portfolio), ['qa_tester']);
 });
+
+test('dashboard totals equal the sum of the daily chart even for items on the window edge', async () => {
+  // NOW is 2026-09-19T12:00Z; a 14-day chart starts 2026-09-06, so 2026-09-05T18:00Z is outside it.
+  await s.post('/v1/ingest/classified', { items: [bugItem('edge1', 24 * 13 + 18)] }, s.fastn);
+  const r = await s.get('/v1/dashboard?days=14');
+  assert.equal(r.body.totals.feedback, r.body.daily.reduce((n, d) => n + d.feedback_count, 0));
+  assert.equal(r.body.totals.feedback, Object.values(r.body.by_source).reduce((a, b) => a + b, 0));
+});

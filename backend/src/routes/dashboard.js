@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { validationError } from '../lib/errors.js';
 import { ENUMS } from '../lib/validate.js';
-import { buildClusters, buildDaily, totalsOf, windowFeedback } from '../lib/aggregate.js';
+import { buildClusters, buildDaily, totalsOf, calendarWindowFeedback } from '../lib/aggregate.js';
 
 const DAYS = [7, 14, 30, 90];
 
@@ -17,7 +17,7 @@ export function dashboardRoutes({ store, now }) {
     const at = now();
     const all = store.values('processed_feedback');
     const statuses = new Map([...store.col('cluster_status')]);
-    const totals = totalsOf(windowFeedback(all, at, days));
+    const totals = totalsOf(calendarWindowFeedback(all, at, days));
     const bugs = buildClusters('bugs', all, statuses, at, days).slice(0, 50);
     const features = buildClusters('features', all, statuses, at, days).slice(0, 50);
     const retention = buildClusters('retention', all, statuses, at, days).slice(0, 50);

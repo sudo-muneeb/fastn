@@ -123,3 +123,10 @@ export function totalsOf(items) {
   }
   return { feedback: items.length, by_source, by_category, by_platform, by_version, avg_sentiment: items.length ? round(sum / items.length) : 0, top_topics: topTopics(topics, 10) };
 }
+
+/** Feedback inside the dashboard's calendar-day buckets (same range as buildDaily), so totals equal the sum of the daily chart. */
+export function calendarWindowFeedback(feedback, now, days) {
+  const d = new Date(now);
+  const start = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - (days - 1) * DAY;
+  return feedback.filter((f) => { const t = Date.parse(f.created_at); return t >= start && t <= now.getTime(); });
+}

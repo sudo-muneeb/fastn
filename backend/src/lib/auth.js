@@ -7,10 +7,10 @@ const safeEqual = (a, b) => {
   return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
 };
 
-const guard = (header, expected) => (req, res, next) =>
-  safeEqual(req.get(header), expected)
+const guard = (config, header, expected) => (req, res, next) =>
+  config.openAccess || safeEqual(req.get(header), expected)
     ? next()
     : next(new ApiError(401, 'UNAUTHORIZED', `Missing or invalid ${header} header`));
 
-export const requireFastnKey = (config) => guard('X-API-Key', config.fastnApiKey);
-export const requireMockKey = (config) => guard('X-Mock-Key', config.mockApiKey);
+export const requireFastnKey = (config) => guard(config, 'X-API-Key', config.fastnApiKey);
+export const requireMockKey = (config) => guard(config, 'X-Mock-Key', config.mockApiKey);

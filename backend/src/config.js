@@ -14,6 +14,8 @@ export function loadConfig(env = process.env) {
     port: Number(env.PORT) || 3000,
     fastnApiKey: env.FASTN_API_KEY || DEFAULT_FASTN_API_KEY,
     mockApiKey: env.MOCK_API_KEY || DEFAULT_MOCK_API_KEY,
+    // OPEN_ACCESS=true turns off the key checks: anyone can call every endpoint (keys are still accepted)
+    openAccess: env.OPEN_ACCESS === 'true',
     corsOrigin: env.CORS_ORIGIN || '*',
     // Optional JSON persistence file (point at a Railway volume, e.g. /data/db.json)
     dataFile: env.DATA_FILE || null,

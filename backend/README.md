@@ -25,6 +25,7 @@ npm test               # 54 tests, no network needed
 | `FASTN_API_KEY` | no | `blockrealm-fastn-key` (sample project default; set your own for real use) | Sent by Fastn as `X-API-Key` to `/v1/ingest/*` and `/v1/export/*` |
 | `MOCK_API_KEY` | no | `blockrealm-mock-key` (same) | Sent by Fastn as `X-Mock-Key` to `/mock/*` |
 | `PORT` | no | `3000` | Railway sets this automatically |
+| `OPEN_ACCESS` | no | `false` | `true` turns off key checks so **anyone** can call every endpoint, including writes. Keys are still accepted |
 | `CORS_ORIGIN` | no | `*` | Comma-separated allowed origins, e.g. your frontend URL |
 | `DATA_FILE` | no | none (memory only) | JSON persistence path, e.g. `/data/db.json` on a Railway volume |
 | `SEED_FILE` | no | `backend/seed/db.json` | Sample data loaded when `DATA_FILE` is unset or missing. `none` = start empty |

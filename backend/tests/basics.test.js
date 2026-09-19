@@ -53,3 +53,11 @@ test('API routes still win over static files and unknown paths 404 as JSON', asy
   assert.equal((await s.get('/health')).status, 200);
   assert.equal((await s.get('/v1/nope')).body.error.code, 'NOT_FOUND');
 });
+
+test('OPEN_ACCESS=true lets anyone call every endpoint without a key', async () => {
+  const open = await startServer({ openAccess: true });
+  assert.equal((await open.get('/v1/export/summary')).status, 200);
+  assert.equal((await open.get('/mock/reddit/posts?peek=true&limit=1')).status, 200);
+  assert.equal((await open.post('/v1/ingest/classified', { items: [] })).status, 400); // reaches validation, not 401
+  await open.close();
+});

@@ -41,3 +41,5 @@ The repo ships sample data in `backend/seed/db.json` (700 classified feedback it
 For real use, generate your own keys with `echo "fastn_$(openssl rand -hex 24)"` and `echo "mock_$(openssl rand -hex 24)"`.
 
 **Connecting Fastn and Google Forms:** see [INTEGRATION.md](INTEGRATION.md).
+
+**Docs:** [INTEGRATION.md](INTEGRATION.md) (Railway, Fastn, Forms setup) · [FASTN_BACKEND_GUIDE.md](FASTN_BACKEND_GUIDE.md) (how the backend behaves, for building the Fastn flows) · [tests/README.md](tests/README.md) (Python tests and checking the frontend)
