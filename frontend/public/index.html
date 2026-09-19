@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BlockRealm Insights</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23866043'/><rect width='16' height='5' fill='%235d9b3a'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <header class="top">
+    <div class="logo"><span class="cube"></span><div><h1>BlockRealm Insights</h1><p>Player feedback, mined into gold</p></div></div>
+    <div class="controls">
+      <label>Time range
+        <select id="days"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
+      </label>
+      <button id="refresh" class="btn">⟳ Refresh</button>
+    </div>
+  </header>
+
+  <nav class="hotbar" id="tabs" role="tablist"></nav>
+  <main id="view" aria-live="polite"><div class="loading">Generating world…</div></main>
+  <footer class="grass"><span id="stamp">—</span> · <span id="api"></span></footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
