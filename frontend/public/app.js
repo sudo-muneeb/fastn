@@ -1,4 +1,5 @@
-const API = (window.BR_CONFIG && window.BR_CONFIG.API_URL) || 'http://localhost:3000';
+// '' (the default from /config.js) means same origin
+const API = window.BR_CONFIG?.API_URL ?? '';
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const label = (s) => esc(String(s).replace(/_/g, ' '));
@@ -187,7 +188,7 @@ async function load() {
     $('#stamp').textContent = `Updated ${fmtDate(state.data.generated_at)}`;
     render();
   } catch (e) {
-    $('#view').innerHTML = `<div class="panel"><h2>Connection lost</h2><p class="error">Could not reach the backend at ${esc(API)} (${esc(e.message)}).</p></div>`;
+    $('#view').innerHTML = `<div class="panel"><h2>Connection lost</h2><p class="error">Could not reach the backend at ${esc(API || location.origin)} (${esc(e.message)}).</p></div>`;
   }
 }
 
@@ -199,7 +200,7 @@ document.addEventListener('click', (e) => {
 });
 $('#days').addEventListener('change', (e) => { state.days = Number(e.target.value); load(); });
 $('#refresh').addEventListener('click', load);
-$('#api').textContent = API;
+$('#api').textContent = API || location.host;
 renderTabs();
 load();
 setInterval(load, 60000);

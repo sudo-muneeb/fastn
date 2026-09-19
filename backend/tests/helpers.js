@@ -5,7 +5,7 @@ export const NOW = new Date('2026-09-19T12:00:00Z');
 export const KEYS = { fastn: 'test-fastn', mock: 'test-mock' };
 
 export async function startServer({ mockUnique = true, now = NOW } = {}) {
-  const config = { port: 0, fastnApiKey: KEYS.fastn, mockApiKey: KEYS.mock, corsOrigin: '*', dataFile: null, mockUnique };
+  const config = { port: 0, fastnApiKey: KEYS.fastn, mockApiKey: KEYS.mock, corsOrigin: '*', dataFile: null, mockUnique, frontendDir: new URL('../../frontend/public', import.meta.url).pathname, publicApiUrl: '' };
   const app = createApp({ config, store: new Store(), now: () => now });
   const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
   const base = `http://127.0.0.1:${server.address().port}`;

@@ -12,37 +12,34 @@ There is no external database: data lives in memory and is optionally persisted 
 
 ## Quick start
 ```bash
-cd backend
+# from the repo root
 npm install
-npm run dev            # http://localhost:3000, dev keys: dev-fastn-key / dev-mock-key
+npm run dev            # http://localhost:3000 (API + dashboard). Default keys: blockrealm-fastn-key / blockrealm-mock-key
 npm run simulate       # optional: acts like Fastn and loads demo data
-npm test               # 51 tests, no network needed
+npm test               # 54 tests, no network needed
 ```
 
 ## Configuration
 | Env var | Required | Default | Purpose |
 |---|---|---|---|
-| `FASTN_API_KEY` | yes (prod) | dev value only when `NODE_ENV` is `development` or `test` | Sent by Fastn as `X-API-Key` to `/v1/ingest/*` and `/v1/export/*` |
-| `MOCK_API_KEY` | yes (prod) | same as above | Sent by Fastn as `X-Mock-Key` to `/mock/*` |
+| `FASTN_API_KEY` | no | `blockrealm-fastn-key` (sample project default; set your own for real use) | Sent by Fastn as `X-API-Key` to `/v1/ingest/*` and `/v1/export/*` |
+| `MOCK_API_KEY` | no | `blockrealm-mock-key` (same) | Sent by Fastn as `X-Mock-Key` to `/mock/*` |
 | `PORT` | no | `3000` | Railway sets this automatically |
 | `CORS_ORIGIN` | no | `*` | Comma-separated allowed origins, e.g. your frontend URL |
 | `DATA_FILE` | no | none (memory only) | JSON persistence path, e.g. `/data/db.json` on a Railway volume |
+| `SEED_FILE` | no | `backend/seed/db.json` | Sample data loaded when `DATA_FILE` is unset or missing. `none` = start empty |
 | `MOCK_UNIQUE` | no | `true` | `false` makes mock APIs return every comment on every call |
+| `FRONTEND_DIR` | no | `../frontend/public` | Static dashboard served at `/`. `none` = API only |
+| `PUBLIC_API_URL` | no | empty (same origin) | API URL the dashboard calls; only set if the dashboard is hosted elsewhere |
 
-The server refuses to start in production without both keys.
+The sample keys are committed to the repo, so **anyone with the repo can call the machine endpoints**. That is fine for a sample project; set your own keys in Railway for real use.
 
 ## Deploy on Railway
-1. Push the repo, then in Railway choose **New Project → Deploy from GitHub repo**.
-2. Set the service **Root Directory** to `backend`. `railway.json` supplies the start command (`npm start`) and health check (`/health`).
-3. In **Variables**, set `FASTN_API_KEY` and `MOCK_API_KEY` to long random strings, and `CORS_ORIGIN` to the frontend URL.
-4. **Persistence (recommended):** add a **Volume** mounted at `/data` and set `DATA_FILE=/data/db.json`. Without it, data resets on every deploy or restart. Run a single instance only, since the store is in-process.
-5. **Settings → Networking → Generate Domain.** That URL is Fastn's `BACKEND_URL`.
-6. Check `https://<domain>/health`, which returns `{"status":"ok",...}`.
-
-In Fastn, set `BACKEND_URL`, `FASTN_API_KEY` and `MOCK_API_KEY` to match.
+The backend and dashboard deploy as **one service from the repo root**, so see the root `README.md` (`railway.json` and the root `package.json` do the work).
+In short: deploy, generate a domain, and use that URL as Fastn's `BACKEND_URL`. Optionally set your own keys, and `DATA_FILE=/data/db.json` with a volume at `/data`.
 
 ## The mock comments (Reddit and X)
-Edit **`src/data/mockComments.js`**. It exports two arrays, `REDDIT_COMMENTS` and `X_COMMENTS`, and you add or change entries there.
+Edit **`src/data/mockComments.js`**. It exports two arrays, `REDDIT_COMMENTS` and `X_COMMENTS`, and you add or change entries there (ids must be unique per source).
 Each entry has the source's own fields plus `hours_ago` (how old it looks; it is turned into `created_at`).
 
 **Unique output per request:** every call to `/mock/reddit/posts` or `/mock/x/posts` returns only comments **not returned before**, oldest first, up to `limit`.
@@ -54,7 +51,7 @@ Served state is kept per source and persisted when `DATA_FILE` is set.
 | `GET /mock/reddit/posts?since=&limit=` | Next unseen Reddit comments (contract §2). Max **50** per request (default 50); a larger `limit` is capped at 50 |
 | `GET /mock/x/posts?since=&limit=` | Next unseen X comments (contract §2) |
 | `...&peek=true` | Look without marking them as served |
-| `GET /mock/status` | `{ "unique_mode": true, "reddit": {"total":24,"served":10}, "x": {...} }` |
+| `GET /mock/status` | `{ "unique_mode": true, "reddit": {"total":250,"served":10}, "x": {...} }` |
 | `POST /mock/reset[?source=reddit\|x]` | Make comments available again → `{ "reset": 24 }` |
 
 All `/mock/*` calls need header `X-Mock-Key`.
@@ -67,7 +64,7 @@ All bodies are JSON, timestamps are ISO-8601 UTC, and field names are `snake_cas
 |---|---|
 | `/v1/ingest/*`, `/v1/export/*`, `PATCH /v1/clusters/*` | `X-API-Key: <FASTN_API_KEY>` |
 | `/mock/*` | `X-Mock-Key: <MOCK_API_KEY>` |
-| `/`, `/health`, `/v1/dashboard` | none |
+| `/` (dashboard), `/health`, `/v1/dashboard` | none |
 
 ### Error response (any 4xx/5xx)
 ```json
@@ -195,7 +192,7 @@ Sorted by all-time `mention_count`. For retention, `title` is the latest `signal
 
 ## Project layout
 ```
-backend/
+backend/          (deployed from the repo root: ../package.json, ../railway.json, ../frontend/public)
   src/
     server.js  app.js  config.js  store.js
     data/mockComments.js        <- edit the Reddit / X comments here
@@ -203,7 +200,7 @@ backend/
     lib/       auth.js  errors.js  validate.js  aggregate.js
   scripts/simulate-fastn.js     <- stand-in for the Fastn flows (demo data)
   tests/                        <- node:test suites (unit-free, run against a real HTTP server)
-  railway.json  .env.example
+  .env  (local keys, git-ignored)
 ```
 
 ## Notes and trade-offs

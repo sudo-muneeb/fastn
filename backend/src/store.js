@@ -3,12 +3,13 @@ import path from 'node:path';
 
 /** Tiny collection store: Map per collection, optional debounced JSON persistence. */
 export class Store {
-  constructor(file = null) {
+  constructor(file = null, seedFile = null) {
     this.file = file;
     this.cols = new Map();
     this.timer = null;
-    if (file && fs.existsSync(file)) {
-      const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const source = file && fs.existsSync(file) ? file : seedFile && fs.existsSync(seedFile) ? seedFile : null;
+    if (source) {
+      const raw = JSON.parse(fs.readFileSync(source, 'utf8'));
       for (const [name, entries] of Object.entries(raw)) this.cols.set(name, new Map(entries));
     }
   }

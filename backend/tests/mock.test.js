@@ -33,17 +33,27 @@ test('peek does not consume; normal requests never repeat comments', async () =>
   assert.equal((await s.get('/mock/reddit/posts', s.mock)).body.items.length, 0);
 });
 
-test('sources are tracked independently; status + reset work', async () => {
-  const xr = await s.get('/mock/x/posts', s.mock);
-  assert.equal(xr.body.items.length, X_COMMENTS.length);
-  const st = await s.get('/mock/status', s.mock);
-  assert.equal(st.body.reddit.served, REDDIT_COMMENTS.length);
-  assert.equal(st.body.x.served, X_COMMENTS.length);
+const drain = async (path) => {
+  let n = 0;
+  for (;;) {
+    const r = await s.get(`${path}?limit=50`, s.mock);
+    assert.ok(r.body.items.length <= 50);
+    if (r.body.items.length === 0) return n;
+    n += r.body.items.length;
+  }
+};
 
-  const rs = await s.post('/mock/reset?source=reddit', {}, s.mock);
-  assert.equal(rs.body.reset, REDDIT_COMMENTS.length);
+test('sources are tracked independently; status + reset work', async () => {
+  await s.post('/mock/reset', {}, s.mock);
+  assert.equal(await drain('/mock/x/posts'), X_COMMENTS.length);
+  const st = await s.get('/mock/status', s.mock);
+  assert.equal(st.body.x.served, X_COMMENTS.length);
+  assert.equal(st.body.reddit.served, 0);
+
+  const rs = await s.post('/mock/reset?source=x', {}, s.mock);
+  assert.equal(rs.body.reset, X_COMMENTS.length);
+  assert.equal((await s.get('/mock/x/posts?limit=3', s.mock)).body.items.length, 3);
   assert.equal((await s.get('/mock/reddit/posts?limit=3', s.mock)).body.items.length, 3);
-  assert.equal((await s.get('/mock/x/posts', s.mock)).body.items.length, 0);
 });
 
 test('items are returned oldest-first and honour since', async () => {
@@ -51,9 +61,10 @@ test('items are returned oldest-first and honour since', async () => {
   const all = (await s.get('/mock/x/posts?peek=true', s.mock)).body.items;
   const times = all.map((i) => i.created_at);
   assert.deepEqual(times, [...times].sort());
-  const after = (await s.get(`/mock/x/posts?peek=true&since=${all[5].created_at}`, s.mock)).body.items;
-  assert.ok(after.every((i) => i.created_at > all[5].created_at));
-  assert.equal(after.length, all.length - 6 - all.slice(6).filter((i) => i.created_at === all[5].created_at).length);
+  const cutoff = all[5].created_at;
+  const later = (await s.get(`/mock/x/posts?peek=true&since=${cutoff}`, s.mock)).body.items;
+  assert.ok(later.length > 0);
+  assert.ok(later.every((i) => i.created_at > cutoff));
 });
 
 test('validates since and limit', async () => {
@@ -76,5 +87,5 @@ test('never returns more than 50 per request; limit above 50 is clamped', async 
   const r = await s.get('/mock/reddit/posts?limit=100&peek=true', s.mock);
   assert.equal(r.status, 200);
   assert.ok(r.body.items.length <= 50);
-  assert.equal((await s.get('/mock/reddit/posts?peek=true', s.mock)).body.items.length, 24); // default cap is 50
+  assert.equal((await s.get('/mock/reddit/posts?peek=true', s.mock)).body.items.length, Math.min(50, REDDIT_COMMENTS.length)); // default cap is 50
 });

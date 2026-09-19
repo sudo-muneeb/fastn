@@ -8,7 +8,7 @@ after(() => s.close());
 
 test('health and root are public', async () => {
   assert.equal((await s.get('/health')).body.status, 'ok');
-  assert.equal((await s.get('/')).status, 200);
+  
 });
 
 test('unknown route returns NOT_FOUND error shape', async () => {
@@ -37,4 +37,19 @@ test('invalid JSON body -> 400 VALIDATION_ERROR', async () => {
   const r = await s.post('/v1/ingest/classified', '{bad', s.fastn);
   assert.equal(r.status, 400);
   assert.equal(r.body.error.code, 'VALIDATION_ERROR');
+});
+
+test('serves the dashboard from the same origin', async () => {
+  const html = await fetch(`${s.base}/`);
+  assert.equal(html.status, 200);
+  assert.match(html.headers.get('content-type'), /text\/html/);
+  assert.match(await html.text(), /BlockRealm Insights/);
+  assert.equal((await fetch(`${s.base}/app.js`)).status, 200);
+  const cfg = await fetch(`${s.base}/config.js`);
+  assert.equal(await cfg.text(), 'window.BR_CONFIG = {"API_URL":""};');
+});
+
+test('API routes still win over static files and unknown paths 404 as JSON', async () => {
+  assert.equal((await s.get('/health')).status, 200);
+  assert.equal((await s.get('/v1/nope')).body.error.code, 'NOT_FOUND');
 });

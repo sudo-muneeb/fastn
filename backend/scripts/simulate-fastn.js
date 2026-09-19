@@ -3,12 +3,12 @@
 // pulls the mock Reddit/X APIs, classifies (keyword rules instead of an LLM), and POSTs to /v1/ingest/*,
 // then builds a meeting, interview questions and a weekly report from /v1/export/summary.
 //
-//   BACKEND_URL=http://localhost:3000 FASTN_API_KEY=dev-fastn-key MOCK_API_KEY=dev-mock-key npm run simulate
+//   BACKEND_URL=http://localhost:3000 FASTN_API_KEY=blockrealm-fastn-key MOCK_API_KEY=blockrealm-mock-key npm run simulate
 import crypto from 'node:crypto';
 
 const BASE = (process.env.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-const FASTN = { 'X-API-Key': process.env.FASTN_API_KEY || 'dev-fastn-key', 'content-type': 'application/json' };
-const MOCK = { 'X-Mock-Key': process.env.MOCK_API_KEY || 'dev-mock-key' };
+const FASTN = { 'X-API-Key': process.env.FASTN_API_KEY || 'blockrealm-fastn-key', 'content-type': 'application/json' };
+const MOCK = { 'X-Mock-Key': process.env.MOCK_API_KEY || 'blockrealm-mock-key' };
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const sha1 = (s) => crypto.createHash('sha1').update(s).digest('hex');
 
@@ -77,9 +77,9 @@ async function pull(source) {
   const items = [];
   const path = source === 'reddit' ? '/mock/reddit/posts' : '/mock/x/posts';
   for (;;) {
-    const page = await http('GET', `${path}?since=1970-01-01T00:00:00Z&limit=100`, MOCK);
+    const page = await http('GET', `${path}?since=1970-01-01T00:00:00Z&limit=50`, MOCK);
     items.push(...page.items);
-    if (page.items.length < 100) break;
+    if (page.items.length === 0) break; // the mock API caps pages at 50 and never repeats comments
   }
   return items.map((p) => {
     const text = (source === 'reddit' ? `${p.title}\n${p.body}` : p.text).slice(0, 4000);

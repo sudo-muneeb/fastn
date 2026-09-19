@@ -1,0 +1,16 @@
+{
+  "name": "blockrealm-insights",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BlockRealm Insights: API + dashboard in one deployable service",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "workspaces": ["backend"],
+  "scripts": {
+    "start": "node backend/src/server.js",
+    "start:local": "node --env-file=backend/.env backend/src/server.js",
+    "dev": "NODE_ENV=development node --watch backend/src/server.js",
+    "test": "npm test --workspace backend",
+    "simulate": "npm run simulate --workspace backend"
+  }
+}
